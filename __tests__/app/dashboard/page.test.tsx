@@ -1,84 +1,107 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import DashboardPage from "@/app/dashboard/page";
 import axios from "axios";
+import api from "@/Redux/interceptors";
 
-jest.mock("axios") // Mock axios
+// jest.mock("axios") // Mock axios
+jest.mock('@/Redux/interceptors', () => ({
+  post: jest.fn(),
+}));
 
 describe("DashboardPage Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  it('shows "Invalid credentials" when username and password are "username" and "password"', async () => {
+  it('POST request sends name, email, and age.', async () => {
+    (api.post as jest.Mock).mockResolvedValue({
+      data: { status: 200 }
+    })
     render(<DashboardPage />)
 
     fireEvent.change(screen.getByRole("textbox", { name: /username/i }), {
       target: { value: "username1" },
     })
-    fireEvent.change(screen.getByRole("textbox", { name: /password/i }), {
-      target: { value: "password1" },
+    fireEvent.change(screen.getByRole("textbox", { name: /email/i }), {
+      target: { value: "ak@gmail.com" },
     })
+    fireEvent.change(screen.getByLabelText(/age/i), {
+      target: { value: 24 }
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /submit/i }))
 
     await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()
-      expect(screen.queryByText(/testing/i)).not.toBeInTheDocument()
-    })
-
-    expect(axios.get).not.toHaveBeenCalled()
+      expect(api.post).toHaveBeenCalledWith(
+        "/api/",
+        expect.objectContaining({
+          name: "username1",
+          email: "ak@gmail.com",
+          age: "24"
+        })
+      );
+    });
+    expect(await screen.findByText(/Successfully done/i)).toBeInTheDocument();
   })
 
-  it("fetches and displays recipes for other credentials", async () => {
-    // Mock successful axios response
-    (axios.get as jest.Mock).mockResolvedValue({
-      data: {
-        recipes: [
-          { id: 1, name: "testing 1" },
-          { id: 2, name: "testing 2" },
-        ],
-      },
-    })
+  it("Handle Error message", async () => {
+    (api.post as jest.Mock).mockRejectedValue(new Error("Network error"));
 
-    render(<DashboardPage />)
 
+    render(<DashboardPage />);
+
+    // Fill required fields (or your form won't submit correctly)
     fireEvent.change(screen.getByRole("textbox", { name: /username/i }), {
-      target: { value: "username" },
-    })
-    fireEvent.change(screen.getByRole("textbox", { name: /password/i }), {
-      target: { value: "password" },
-    })
+      target: { value: "username1" },
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    fireEvent.change(screen.getByRole("textbox", { name: /email/i }), {
+      target: { value: "ak@gmail.com" },
+    });
 
-    await waitFor(() => {
-      expect(screen.getByText("testing 1")).toBeInTheDocument()
-      expect(screen.getByText("testing 2")).toBeInTheDocument()
-    })
+    fireEvent.change(screen.getByRole("spinbutton", { name: /age/i }), {
+      target: { value: 24 },
+    });
 
-    expect(axios.get).toHaveBeenCalledTimes(1)
-  })
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
 
-  it("displays error when axios call fails", async () => {
-    // Mock axios failure
-    (axios.get as jest.Mock).mockRejectedValue(new Error("Network error"))
+    expect(await screen.findByText(/Failed to fetch recipes/i))
+      .toBeInTheDocument();
 
-    render(<DashboardPage />)
+    // Ensure success message did NOT appear
+    expect(screen.queryByText(/Successfully done/i)).not.toBeInTheDocument();
 
+  });
+
+  it("shows validation error when name, age, and email are empty", async () => {
+    // Mock API failure for invalid data
+    (api.post as jest.Mock).mockRejectedValue(new Error("Invalid data"));
+
+    render(<DashboardPage />);
+
+    // Simulate empty input fields
     fireEvent.change(screen.getByRole("textbox", { name: /username/i }), {
-      target: { value: "username" },
-    })
-    fireEvent.change(screen.getByRole("textbox", { name: /password/i }), {
-      target: { value: "password" },
-    })
+      target: { value: "" },
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: /submit/i }))
+    fireEvent.change(screen.getByRole("textbox", { name: /email/i }), {
+      target: { value: "" },
+    });
 
-    await waitFor(() => {
-      expect(screen.getByText(/failed to fetch recipes/i)).toBeInTheDocument()
-      expect(screen.queryByText(/testing/i)).not.toBeInTheDocument()
-    })
+    fireEvent.change(screen.getByRole("spinbutton", { name: /age/i }), {
+      target: { value: "" },
+    });
 
-    expect(axios.get).toHaveBeenCalledTimes(1)
-  })
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+
+    // Assert validation or API error appears
+    expect(
+      await screen.findByText(/invalid data/i)
+    ).toBeInTheDocument();
+
+    // Assert success message never appears
+    expect(
+      screen.queryByText(/successfully done/i)
+    ).not.toBeInTheDocument();
+  });
 })

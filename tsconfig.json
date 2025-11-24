@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "__tests__/app/redux/page.test.tsx", "__tests__/app/dashboard/page.test", "__tests__/Redux/interceptors.tes__tests__/app/page.test.tsx/app/page"  ],
   "exclude": ["node_modules"]
 }
