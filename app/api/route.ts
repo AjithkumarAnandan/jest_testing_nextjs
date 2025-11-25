@@ -70,3 +70,89 @@ export const GET = async () => {
         );
     }
 };
+
+export const PUT = async (req: Request) => {
+    try {
+        const { id, name } = await req.json();
+
+        if (!id || !name) {
+            return NextResponse.json({
+                status: 400,
+                message: "id and name are required",
+            });
+        }
+
+        await ensureTable();
+
+        const findExisted = await pool.query(
+            `SELECT * FROM jestlib."users" WHERE id = $1`,
+            [id]
+        );
+
+        if (findExisted.rows.length === 0) {
+            return NextResponse.json({
+                status: 404,
+                message: "User not found",
+            });
+        }
+
+        await pool.query(
+            `UPDATE jestlib."users" SET name = $1 WHERE id = $2`,
+            [name, id]
+        );
+
+        return NextResponse.json({
+            status: 201,
+            message: "Updated successfully",
+        });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({
+            status: 500,
+            message: "Something went wrong",
+        });
+    }
+};
+
+export const DELETE = async (req: Request) => {
+    const { id } = await req.json();
+    try {
+
+        if (!id) {
+            return NextResponse.json({
+                status: 400,
+                message: "id is required",
+            });
+        }
+
+        await ensureTable();
+
+        const findExisted = await pool.query(
+            `SELECT * FROM jestlib."users" WHERE id = $1`,
+            [id]
+        );
+
+        if (findExisted.rows.length === 0) {
+            return NextResponse.json({
+                status: 404,
+                message: "User not found",
+            });
+        }
+
+        await pool.query(
+            `DELETE FROM jestlib."users" WHERE id = $1`,
+            [id]
+        );
+
+        return NextResponse.json({
+            status: 201,
+            message: "Deleted successfully",
+        });
+    } catch (err) {
+        console.error(err);
+        return NextResponse.json({
+            status: 500,
+            message: "Something went wrong",
+        });
+    }
+};
