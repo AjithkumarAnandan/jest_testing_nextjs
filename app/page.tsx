@@ -11,7 +11,6 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const res = await api.get("/api/");
-        console.log("res.data.data", res.data.data)
         const sortedRes = res.data.data.sort((a: any, b: any) => a.id - b.id)
         setData(sortedRes)
       }
@@ -37,29 +36,29 @@ export default function Home() {
   const handleApi = async ({ id, name }: {id:number, name:string}) => {
     try {
       const response = await api.put("/api/", { id, name });
-      if (response.status == 201) {
-        toast(response.data?.message ?? "Updated successfully");
+      if (response.status == 200 || response.status == 201) {
+         toast.success(response.data?.message ?? "Updated successfully");
       }
     } catch (error) {
-      toast((error as Error).message ?? "Something went wrong");
+      toast.error((error as Error).message ?? "Something went wrong");
     }
   }
-  const onDelete = async(id: number) => { 
+  const onDelete = async (id: number) => {
     try {
-       const result=[...data].filter((item)=>{
-        const itemId:number=(item as any).id;
-      return id!==itemId
-    });
-    setData(result)
-    const response = await api.delete("/api/", {  data: { id } });
-      if (response.status == 201) {
-       toast(response.data?.message ?? "Deleted successfully");
+      const response = await api.delete("/api/", { data: { id } });
+      if (response.status == 200 || response.status == 201) {
+        const result = [...data].filter((item) => {
+          const itemId: number = (item as any).id;
+          return id !== itemId
+        });
+        setData(result)
+        toast.success(response.data.message ?? "Deleted successfully");
       }
     } catch (error) {
-      toast((error as Error).message ?? "Something went wrong");
-    }  
+      toast.error((error as Error).message ?? "Something went wrong");
+    }
   }
-  
+
 
   return (
     <div className="ml-8 min-h-screen bg-zinc-50 font-sans dark:bg-black">
@@ -87,7 +86,7 @@ export default function Home() {
               "Save" : "Edit"}
           </button>
           <button 
-          aria-label="onDelete"
+           aria-label={`delete-${item.id}`}
             className="px-2 py-1 text-sm bg-red-500 text-white rounded"
             onClick={() => onDelete(item.id)}
           >
